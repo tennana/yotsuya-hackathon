@@ -108,7 +108,7 @@
 				lastHesitationSignature = signature;
 				emitHidden('hesitation', current);
 			}
-		}, 1_200);
+		}, 4_000);
 	}
 
 	function handleInput(event: Event) {
@@ -222,94 +222,84 @@
 	<title>参加者入力 | 場温計</title>
 </svelte:head>
 
-<main class="min-h-screen bg-neutral-950 text-neutral-50">
-	<div class="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 px-5 py-5 sm:px-8">
-		<header class="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
-			<div>
-				<p class="text-xs tracking-[0.24em] text-amber-300 uppercase">Unsaid Board</p>
-				<h1 class="mt-2 text-3xl font-semibold">参加者入力</h1>
-				<p class="mt-1 text-sm text-neutral-400">Room: {roomId}</p>
+<main class="min-h-dvh bg-neutral-950 text-neutral-50">
+	<div class="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-3 py-3 sm:px-5 sm:py-4">
+		<header class="rounded-xl border border-white/10 bg-neutral-900/70 px-4 py-3 backdrop-blur">
+			<div class="flex items-center justify-between gap-3">
+				<div>
+					<p class="text-[11px] tracking-[0.2em] text-amber-300 uppercase">Unsaid Board</p>
+					<h1 class="mt-1 text-xl font-semibold sm:text-2xl">参加者チャット</h1>
+					<p class="mt-1 text-xs text-neutral-400">Room: {roomId}</p>
+				</div>
+				<a
+					class="shrink-0 rounded-lg border border-white/20 px-3 py-2 text-xs text-neutral-100 hover:border-amber-300 hover:text-amber-200"
+					href={resolve('/room/[id]/facilitator', { id: roomId })}
+					target="_blank"
+				>
+					ファシリ画面
+				</a>
 			</div>
-			<a
-				class="rounded-md border border-white/15 px-4 py-2 text-sm text-neutral-100 hover:border-amber-300 hover:text-amber-200"
-				href={resolve('/room/[id]/facilitator', { id: roomId })}
-				target="_blank"
-			>
-				ファシリテーター画面
-			</a>
+			<div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-400">
+				<span>{realtimeStatus}</span>
+				<span>{classifyStatus}</span>
+			</div>
 		</header>
 
-		<section class="grid flex-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-			<div class="flex flex-col gap-4">
-				<div class="rounded-md border border-white/10 bg-neutral-900 p-4">
-					<label for="draft" class="text-sm font-medium text-neutral-200">
-						チャットに書く内容
-					</label>
-					<textarea
-						id="draft"
-						class="mt-3 min-h-48 w-full resize-none rounded-md border border-white/10 bg-neutral-950 px-4 py-3 text-base leading-7 text-neutral-50 transition outline-none focus:border-amber-300"
-						placeholder="例: でも、このまま進めるのは少しリスクがある気がします"
-						value={draft}
-						oninput={handleInput}
-						onblur={handleBlur}
-						onkeydown={handleKeydown}
-					></textarea>
-					<div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-						<p class="text-sm text-neutral-400">
-							未送信・削除・入力停止は本文を表示せず、分類結果だけ送信します。
-						</p>
-						<button
-							class="rounded-md bg-amber-300 px-5 py-2 text-sm font-semibold text-neutral-950 hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-40"
-							type="button"
-							disabled={!draft.trim()}
-							onmousedown={() => {
-								suppressBlur = true;
-							}}
-							onclick={() => void send()}
-						>
-							送信
-						</button>
+		<section class="mt-3 flex flex-1 flex-col overflow-hidden rounded-xl border border-white/10 bg-neutral-900">
+			<div class="flex-1 space-y-3 overflow-y-auto px-3 py-4 sm:px-4">
+				{#if sentMessages.length === 0}
+					<div class="rounded-xl border border-dashed border-white/10 bg-neutral-950/60 px-4 py-6 text-center">
+						<p class="text-sm text-neutral-400">まだメッセージはありません</p>
 					</div>
-				</div>
-
-				<div class="rounded-md border border-white/10 p-4">
-					<h2 class="text-lg font-semibold">表面のチャット</h2>
-					<div class="mt-3 space-y-2">
-						{#if sentMessages.length === 0}
-							<p class="text-sm text-neutral-500">まだ送信済みメッセージはありません。</p>
-						{:else}
-							{#each sentMessages as message, index (`${message.participantId}-${message.t}-${index}`)}
-								<div class="rounded-md bg-white/5 px-3 py-2">
-									<div class="mb-1 flex items-center justify-between gap-2">
-										<span
-											class={`rounded-full border px-2 py-0.5 text-xs font-medium ${sourceStyle(message.participantId)}`}
-										>
-											{sourceLabel(message.participantId)}
-										</span>
-									</div>
-									<p class="text-sm text-neutral-200">{message.text}</p>
+				{:else}
+					{#each sentMessages.slice().reverse() as message, index (`${message.participantId}-${message.t}-${index}`)}
+						{@const isOwn = message.participantId === participantId}
+						<div class={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+							<div
+								class={`max-w-[85%] rounded-2xl px-3 py-2 sm:max-w-[75%] ${
+									isOwn ? 'bg-amber-300 text-neutral-950' : 'bg-white/8 text-neutral-100'
+								}`}
+							>
+								<div class="mb-1">
+									<span
+										class={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${sourceStyle(message.participantId)}`}
+									>
+										{sourceLabel(message.participantId)}
+									</span>
 								</div>
-							{/each}
-						{/if}
-					</div>
-				</div>
+								<p class="text-sm leading-6">{message.text}</p>
+							</div>
+						</div>
+					{/each}
+				{/if}
 			</div>
 
-			<aside class="space-y-3">
-				<div class="rounded-md border border-white/10 p-4">
-					<p class="text-xs tracking-[0.2em] text-neutral-500 uppercase">status</p>
-					<p class="mt-2 text-sm text-neutral-200">{realtimeStatus}</p>
-					<p class="mt-1 text-sm text-neutral-400">{classifyStatus}</p>
+			<div class="border-t border-white/10 bg-neutral-900 px-3 pb-3 pt-3 sm:px-4 sm:pb-4">
+				<label for="draft" class="sr-only">メッセージ入力</label>
+				<textarea
+					id="draft"
+					class="min-h-24 w-full resize-none rounded-xl border border-white/15 bg-neutral-950 px-4 py-3 text-base leading-7 text-neutral-50 outline-none focus:border-amber-300"
+					placeholder="メッセージを入力"
+					value={draft}
+					oninput={handleInput}
+					onblur={handleBlur}
+					onkeydown={handleKeydown}
+				></textarea>
+				<div class="mt-2 flex items-center justify-between gap-3">
+					<p class="text-[11px] text-neutral-500">入力停止の判定は約4秒です</p>
+					<button
+						class="rounded-xl bg-amber-300 px-5 py-2 text-sm font-semibold text-neutral-950 hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-40"
+						type="button"
+						disabled={!draft.trim()}
+						onmousedown={() => {
+							suppressBlur = true;
+						}}
+						onclick={() => void send()}
+					>
+						送信
+					</button>
 				</div>
-				<div class="rounded-md border border-white/10 p-4">
-					<h2 class="text-base font-semibold">デモ用トリガー</h2>
-					<ul class="mt-3 space-y-2 text-sm text-neutral-400">
-						<li>反論文を打って数秒止める</li>
-						<li>長めに書いて一気に消す</li>
-						<li>送信すると表面チャットに出る</li>
-					</ul>
-				</div>
-			</aside>
+			</div>
 		</section>
 	</div>
 </main>
