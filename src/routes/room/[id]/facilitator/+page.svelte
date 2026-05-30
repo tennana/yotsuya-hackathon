@@ -3,6 +3,12 @@
 	import { page } from '$app/state';
 	import { KIND_LABEL, SignalEvent, type SignalEvent as SignalEventType } from '$lib/events';
 	import { createDemoSource } from '$lib/sources/demoSource';
+	import {
+		broadcastSignal,
+		classifyText,
+		createSignalEvent,
+		getParticipantId
+	} from '$lib/sources/liveSource';
 	import { createBrowserSupabaseClient } from '$lib/supabase';
 	import { createSuggestionEngine, type Suggestion } from '$lib/suggestions';
 	import {
@@ -11,6 +17,7 @@
 		computeTemperatures,
 		dominantCategory
 	} from '$lib/thermo';
+	import type { RealtimeChannel } from '@supabase/supabase-js';
 	import { onMount } from 'svelte';
 
 	const roomId = $derived(page.params.id ?? 'demo');
@@ -23,8 +30,12 @@
 	let events = $state<SignalEventType[]>([]);
 	let suggestions = $state<Suggestion[]>([]);
 	let now = $state(Date.now());
-	let demoStatus = $state('デモ再生中');
+	let demoStatus = $state('デモ未開始');
 	let realtimeStatus = $state('接続準備中');
+	let facilitatorDraft = $state('');
+	let facilitatorStatus = $state('待機中');
+	let facilitatorId = '';
+	let channel = $state<RealtimeChannel | null>(null);
 
 	const demoSource = createDemoSource();
 	const suggestionEngine = createSuggestionEngine();
@@ -60,6 +71,31 @@
 		}
 	}
 
+	function sourceLabel(participantId: string) {
+		if (participantId.startsWith('demo-')) return 'デモ';
+		if (participantId.startsWith('facilitator-')) return 'ファシリ';
+		return '参加者';
+	}
+
+	function sourceStyle(participantId: string) {
+		if (participantId.startsWith('demo-')) {
+			return 'bg-violet-300/20 text-violet-200 border-violet-200/40';
+		}
+		if (participantId.startsWith('facilitator-')) {
+			return 'bg-sky-300/20 text-sky-200 border-sky-200/40';
+		}
+		return 'bg-emerald-300/20 text-emerald-200 border-emerald-200/40';
+	}
+
+	function recentSentContext() {
+		return events
+			.filter((event) => event.kind === 'sent')
+			.map((event) => event.text)
+			.filter((text): text is string => Boolean(text))
+			.slice(-2)
+			.reverse();
+	}
+
 	function startDemo() {
 		demoStatus = 'デモ再生中';
 		demoSource.start(addEvent, () => {
@@ -76,8 +112,53 @@
 		startDemo();
 	}
 
+	function resetWithoutDemo() {
+		demoSource.stop();
+		events = [];
+		suggestions = [];
+		suggestionEngine.reset();
+		now = Date.now();
+		demoStatus = 'デモ停止中';
+	}
+
+	async function sendFacilitatorMessage() {
+		const text = facilitatorDraft.trim();
+		if (!text) return;
+
+		facilitatorStatus = '分類中';
+		try {
+			const classification = await classifyText(text, 'sent', {
+				roomId,
+				recentSentTexts: recentSentContext()
+			});
+			const event = createSignalEvent({
+				participantId: facilitatorId,
+				kind: 'sent',
+				classification,
+				text
+			});
+			addEvent(event);
+			await broadcastSignal(channel, event);
+			facilitatorDraft = '';
+			facilitatorStatus = `${classification.category} ${Math.round(classification.intensity * 100)}%`;
+		} catch {
+			facilitatorStatus = '分類 API に接続できません';
+		}
+	}
+
+	function handleFacilitatorKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter' && !event.shiftKey) {
+			event.preventDefault();
+			void sendFacilitatorMessage();
+		}
+	}
+
+	function handleFacilitatorInput(event: Event) {
+		facilitatorDraft = (event.currentTarget as HTMLTextAreaElement).value;
+	}
+
 	onMount(() => {
-		startDemo();
+		facilitatorId = `facilitator-${getParticipantId()}`;
 
 		const interval = setInterval(() => {
 			now = Date.now();
@@ -92,13 +173,15 @@
 			};
 		}
 
-		const channel = client
+		const nextChannel = client
 			.channel(`room:${roomId}`)
 			.on('broadcast', { event: 'signal' }, ({ payload }) => {
 				addEvent(payload);
 			});
 
-		channel.subscribe((status) => {
+		channel = nextChannel;
+
+		nextChannel.subscribe((status) => {
 			if (status === 'SUBSCRIBED') realtimeStatus = 'Realtime 接続中';
 			else if (status === 'CHANNEL_ERROR') realtimeStatus = 'Realtime エラー';
 			else if (status === 'TIMED_OUT') realtimeStatus = 'Realtime タイムアウト';
@@ -109,7 +192,8 @@
 		return () => {
 			clearInterval(interval);
 			demoSource.stop();
-			void client.removeChannel(channel);
+			channel = null;
+			void client.removeChannel(nextChannel);
 		};
 	});
 </script>
@@ -137,17 +221,56 @@
 					参加者入力
 				</a>
 				<button
+					class="rounded-md border border-sky-300/40 px-4 py-2 text-sm font-semibold text-sky-100 hover:border-sky-200 hover:text-sky-50"
+					type="button"
+					onclick={startDemo}
+				>
+					デモを開始
+				</button>
+				<button
 					class="rounded-md bg-amber-300 px-4 py-2 text-sm font-semibold text-neutral-950 hover:bg-amber-200"
 					type="button"
 					onclick={resetDemo}
 				>
 					デモをリセット
 				</button>
+				<button
+					class="rounded-md border border-white/20 px-4 py-2 text-sm font-semibold text-neutral-100 hover:border-white/40"
+					type="button"
+					onclick={resetWithoutDemo}
+				>
+					リセット（デモ停止）
+				</button>
 			</div>
 		</header>
 
 		<section class="grid flex-1 gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
 			<div class="space-y-5">
+				<section class="rounded-md border border-white/10 bg-neutral-900 p-4">
+					<div class="flex items-center justify-between gap-3">
+						<h2 class="text-lg font-semibold">ファシリテーター発言</h2>
+						<span class="text-xs text-neutral-500">room broadcast</span>
+					</div>
+					<textarea
+						class="mt-3 min-h-24 w-full resize-none rounded-md border border-white/10 bg-neutral-950 px-3 py-2 text-sm leading-6 text-neutral-100 outline-none focus:border-sky-300"
+						placeholder="例: いま反論が増えているので、懸念を1分だけ出しましょう"
+						value={facilitatorDraft}
+						oninput={handleFacilitatorInput}
+						onkeydown={handleFacilitatorKeydown}
+					></textarea>
+					<div class="mt-3 flex items-center justify-between gap-3">
+						<p class="text-xs text-neutral-500">{facilitatorStatus}</p>
+						<button
+							class="rounded-md bg-sky-300 px-4 py-2 text-sm font-semibold text-neutral-950 hover:bg-sky-200 disabled:cursor-not-allowed disabled:opacity-40"
+							type="button"
+							disabled={!facilitatorDraft.trim()}
+							onclick={() => void sendFacilitatorMessage()}
+						>
+							発言を送信
+						</button>
+					</div>
+				</section>
+
 				<section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
 					{#each summaries as item (item.category)}
 						{@const color = categoryColor(item.temp)}

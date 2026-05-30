@@ -6,7 +6,9 @@ import { Category, Kind, type Category as CategoryType } from '$lib/events';
 
 const RequestBody = z.object({
 	text: z.string().min(1).max(2_000),
-	kind: Kind
+	kind: Kind,
+	roomId: z.string().min(1).max(120).optional(),
+	recentSentTexts: z.array(z.string().min(1).max(500)).max(2).optional()
 });
 
 const Classification = z.object({
@@ -50,9 +52,11 @@ function heuristicClassify(text: string): z.infer<typeof Classification> {
 
 function stabilizeForDemo(
 	text: string,
-	classification: z.infer<typeof Classification>
+	classification: z.infer<typeof Classification>,
+	recentSentTexts: string[] = []
 ): z.infer<typeof Classification> {
 	const normalized = text.toLowerCase();
+	const context = recentSentTexts.join(' ').toLowerCase();
 	const hasDisagreementCue = [
 		'でも',
 		'ただ',
@@ -61,11 +65,20 @@ function stabilizeForDemo(
 		'違う',
 		'納得でき',
 		'リスク',
-		'無理'
+		'無理',
+		'本当に',
+		'それでいい',
+		'大丈夫なの'
 	].some((word) => normalized.includes(word));
 	const isQuestion = normalized.includes('?') || normalized.includes('？');
+	const hasAgreementContext = ['いいと思', '賛成', '納得', '了解', '進めましょう', '大丈夫そう'].some(
+		(word) => context.includes(word)
+	);
+	const hasChallengeQuestionCue = ['本当に', 'それでいい', '大丈夫', '問題ない'].some((word) =>
+		normalized.includes(word)
+	);
 
-	if (hasDisagreementCue && !isQuestion) {
+	if ((hasDisagreementCue && !isQuestion) || (isQuestion && hasAgreementContext && hasChallengeQuestionCue)) {
 		return {
 			category: '反論',
 			intensity: Math.max(classification.intensity, 0.72)
@@ -75,11 +88,25 @@ function stabilizeForDemo(
 	return classification;
 }
 
-async function classifyWithOpenAI(text: string): Promise<z.infer<typeof Classification>> {
+async function classifyWithOpenAI(input: {
+	text: string;
+	kind: z.infer<typeof Kind>;
+	recentSentTexts: string[];
+}): Promise<z.infer<typeof Classification>> {
 	const client = new OpenAI({
 		apiKey: env.OPENAI_API_KEY,
 		timeout: 4_000
 	});
+
+	const contextLines = input.recentSentTexts
+		.slice(0, 2)
+		.map((line, index) => `直前の発言${index + 1}: 「${line}」`)
+		.join('\n');
+	const userPrompt = [
+		`対象テキスト: 「${input.text}」`,
+		`イベント種別: ${input.kind}`,
+		contextLines ? `文脈:\n${contextLines}` : '文脈: なし'
+	].join('\n\n');
 
 	const response = await client.chat.completions.create(
 		{
@@ -89,11 +116,18 @@ async function classifyWithOpenAI(text: string): Promise<z.infer<typeof Classifi
 				{
 					role: 'system',
 					content:
-						'あなたは会議の未送信テキストを分類する。入力文を読み、{"category":"不安|反論|質問|納得","intensity":0.0} の JSON のみを返す。前置き・マークダウン禁止。category は "不安"|"反論"|"質問"|"納得" のいずれか。intensity は感情の強さ 0.0〜1.0。本文は分類後に破棄され、保存されない。'
+						'あなたは会議発言分類器です。JSONのみ返す。\n' +
+						'カテゴリ定義:\n' +
+						'- 反論: 提案・結論への不同意、または疑義の提示。\n' +
+						'- 質問: 情報取得が目的の中立的な問い。\n' +
+						'- 不安: 結果・進行・リスクへの懸念。\n' +
+						'- 納得: 賛同、理解、前進への同意。\n' +
+						'直前文脈に賛同発言があり、その流れに疑義を投げる問いは反論を優先。\n' +
+						'出力形式は {"category":"不安|反論|質問|納得","intensity":0.0}。前置き・説明・マークダウン禁止。'
 				},
 				{
 					role: 'user',
-					content: text
+					content: userPrompt
 				}
 			]
 		},
@@ -119,11 +153,21 @@ export const POST: RequestHandler = async ({ request }) => {
 		return json({ category: '不安', intensity: 0.5 });
 	}
 
-	if (!env.OPENAI_API_KEY) return json(stabilizeForDemo(body.text, heuristicClassify(body.text)));
+	const recentSentTexts = body.recentSentTexts ?? [];
+
+	if (!env.OPENAI_API_KEY) {
+		return json(stabilizeForDemo(body.text, heuristicClassify(body.text), recentSentTexts));
+	}
 
 	try {
-		return json(stabilizeForDemo(body.text, await classifyWithOpenAI(body.text)));
+		return json(
+			stabilizeForDemo(
+				body.text,
+				await classifyWithOpenAI({ text: body.text, kind: body.kind, recentSentTexts }),
+				recentSentTexts
+			)
+		);
 	} catch {
-		return json(stabilizeForDemo(body.text, heuristicClassify(body.text)));
+		return json(stabilizeForDemo(body.text, heuristicClassify(body.text), recentSentTexts));
 	}
 };

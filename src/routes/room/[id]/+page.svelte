@@ -45,6 +45,13 @@
 		return `Realtime ${status}`;
 	}
 
+	function recentSentContext() {
+		return sentMessages
+			.map((event) => event.text)
+			.filter((text): text is string => Boolean(text))
+			.slice(0, 2);
+	}
+
 	async function emitClassified(kind: Kind, rawText: string) {
 		const text = rawText.trim();
 		if (!text) return;
@@ -52,7 +59,10 @@
 		classifyStatus = `${KIND_LABEL[kind]}を分類中`;
 
 		try {
-			const classification = await classifyText(text, kind);
+			const classification = await classifyText(text, kind, {
+				roomId,
+				recentSentTexts: recentSentContext()
+			});
 			const event = createSignalEvent({
 				participantId,
 				kind,
