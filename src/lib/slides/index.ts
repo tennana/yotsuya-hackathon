@@ -1,0 +1,9 @@
+export { default as Deck } from './Deck.svelte';
+export { default as Slide } from './Slide.svelte';
+export { default as Title } from './layouts/Title.svelte';
+export { default as Bullets } from './layouts/Bullets.svelte';
+export { default as Statement } from './layouts/Statement.svelte';
+export { default as Code } from './layouts/Code.svelte';
+export { default as TwoColumn } from './layouts/TwoColumn.svelte';
+export { default as Image } from './layouts/Image.svelte';
+export { default as Demo } from './layouts/Demo.svelte';
