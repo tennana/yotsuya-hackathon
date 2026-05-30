@@ -9,103 +9,56 @@ export const DEMO_TIMELINE: DemoTimelineEvent[] = [
 		participantId: 'demo-a',
 		kind: 'sent',
 		category: '納得',
-		intensity: 0.3,
+		intensity: 0.16,
 		text: 'なるほど、方向性は理解しました。'
 	},
 	{
-		at: 3_200,
+		at: 2_200,
 		participantId: 'demo-b',
 		kind: 'sent',
 		category: '納得',
-		intensity: 0.35,
-		text: 'いいと思います。進めましょう。'
+		intensity: 0.16,
+		text: '一旦それで進めましょう。'
 	},
 	{
-		at: 7_400,
+		at: 3_800,
 		participantId: 'demo-c',
-		kind: 'sent',
-		category: '納得',
-		intensity: 0.28,
-		text: '了解です。'
+		kind: 'unsent',
+		category: '反論',
+		intensity: 0.68,
+		text: '来週は無理では？'
 	},
 	{
-		at: 10_500,
+		at: 5_200,
 		participantId: 'demo-d',
-		kind: 'hesitation',
+		kind: 'deleted',
 		category: '不安',
-		intensity: 0.45
+		intensity: 0.62,
+		text: 'QA終わってませんよね？'
 	},
 	{
-		at: 12_500,
+		at: 6_600,
 		participantId: 'demo-e',
-		kind: 'deleted',
-		category: '反論',
-		intensity: 0.52
-	},
-	{
-		at: 15_500,
-		participantId: 'demo-b',
-		kind: 'sent',
-		category: '納得',
-		intensity: 0.22,
-		text: '一旦その案で大丈夫そうです。'
-	},
-	{
-		at: 17_200,
-		participantId: 'demo-f',
 		kind: 'hesitation',
-		category: '反論',
-		intensity: 0.56
-	},
-	{
-		at: 20_000,
-		participantId: 'demo-g',
-		kind: 'deleted',
-		category: '反論',
-		intensity: 0.68
-	},
-	{
-		at: 23_500,
-		participantId: 'demo-h',
-		kind: 'deleted',
 		category: '質問',
-		intensity: 0.44
+		intensity: 0.82,
+		text: '誰が障害対応するんですか？'
 	},
 	{
-		at: 25_500,
-		participantId: 'demo-i',
-		kind: 'deleted',
+		at: 8_000,
+		participantId: 'demo-f',
+		kind: 'unsent',
 		category: '反論',
-		intensity: 0.78
+		intensity: 0.66,
+		text: 'また現場に丸投げですか？'
 	},
 	{
-		at: 28_800,
-		participantId: 'demo-j',
-		kind: 'hesitation',
-		category: '反論',
-		intensity: 0.82
-	},
-	{
-		at: 32_000,
-		participantId: 'demo-a',
-		kind: 'sent',
-		category: '納得',
-		intensity: 0.24,
-		text: 'では次の議題に移りますか。'
-	},
-	{
-		at: 34_500,
-		participantId: 'demo-k',
-		kind: 'deleted',
-		category: '反論',
-		intensity: 0.88
-	},
-	{
-		at: 39_000,
-		participantId: 'demo-l',
+		at: 9_400,
+		participantId: 'demo-g',
 		kind: 'hesitation',
 		category: '不安',
-		intensity: 0.55
+		intensity: 0.6,
+		text: '今の説明、正直わからないです'
 	}
 ];
 

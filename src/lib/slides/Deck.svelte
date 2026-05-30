@@ -90,20 +90,20 @@
 	</div>
 
 	<div
-		class="fixed right-5 bottom-4 flex items-center gap-3 text-sm text-white/60"
+		class="fixed right-5 bottom-4 flex items-center gap-3 text-base text-white/70"
 		data-no-advance
 	>
 		<button
-			class="rounded px-2 py-1 hover:bg-white/10 disabled:opacity-30"
+			class="rounded px-2 py-1.5 text-lg hover:bg-white/10 disabled:opacity-30"
 			disabled={current === 0}
 			onclick={() => go(current - 1)}
 			aria-label="前のスライド"
 		>
 			←
 		</button>
-		<span class="tabular-nums">{current + 1} / {total}</span>
+		<span class="tabular-nums text-xl font-semibold">{current + 1} / {total}</span>
 		<button
-			class="rounded px-2 py-1 hover:bg-white/10 disabled:opacity-30"
+			class="rounded px-2 py-1.5 text-lg hover:bg-white/10 disabled:opacity-30"
 			disabled={current >= total - 1}
 			onclick={() => go(current + 1)}
 			aria-label="次のスライド"

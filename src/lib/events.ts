@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const CATEGORIES = ['不安', '反論', '質問', '納得'] as const;
 
 export const Category = z.enum(CATEGORIES);
-export const Kind = z.enum(['hesitation', 'deleted', 'sent']);
+export const Kind = z.enum(['hesitation', 'deleted', 'unsent', 'sent']);
 
 export const SignalEvent = z.object({
 	participantId: z.string(),
@@ -20,6 +20,7 @@ export type SignalEvent = z.infer<typeof SignalEvent>;
 
 export const KIND_LABEL: Record<Kind, string> = {
 	hesitation: '入力停止',
-	deleted: '未送信',
+	deleted: '削除済み',
+	unsent: '未送信',
 	sent: '送信済み'
 };
