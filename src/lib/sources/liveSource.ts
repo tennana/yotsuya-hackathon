@@ -9,6 +9,11 @@ const Classification = z.object({
 
 export type Classification = z.infer<typeof Classification>;
 
+export interface ClassifyContext {
+	roomId?: string;
+	recentSentTexts?: string[];
+}
+
 export function getParticipantId(): string {
 	const key = 'unsaid-board-participant-id';
 	const existing = localStorage.getItem(key);
@@ -19,13 +24,22 @@ export function getParticipantId(): string {
 	return id;
 }
 
-export async function classifyText(text: string, kind: Kind): Promise<Classification> {
+export async function classifyText(
+	text: string,
+	kind: Kind,
+	context: ClassifyContext = {}
+): Promise<Classification> {
 	const response = await fetch('/api/classify', {
 		method: 'POST',
 		headers: {
 			'content-type': 'application/json'
 		},
-		body: JSON.stringify({ text, kind })
+		body: JSON.stringify({
+			text,
+			kind,
+			roomId: context.roomId,
+			recentSentTexts: (context.recentSentTexts ?? []).slice(0, 2)
+		})
 	});
 
 	if (!response.ok) throw new Error(`classify failed: ${response.status}`);

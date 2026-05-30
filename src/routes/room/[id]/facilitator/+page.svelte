@@ -196,6 +196,13 @@
 							{:else}
 								{#each surfaceMessages as message, index (`${message.participantId}-${message.t}-${index}`)}
 									<div class="border-l-2 border-emerald-300/70 py-1 pl-3">
+										<div class="mb-1 flex items-center gap-2">
+											<span
+												class={`rounded-full border px-2 py-0.5 text-xs font-medium ${sourceStyle(message.participantId)}`}
+											>
+												{sourceLabel(message.participantId)}
+											</span>
+										</div>
 										<p class="text-sm text-neutral-200">{message.text}</p>
 										<p class="mt-1 text-xs text-neutral-500">{formatTime(message.t)}</p>
 									</div>
@@ -217,6 +224,13 @@
 									{@const color = categoryColor(event.category ? temps[event.category] : 0)}
 									<div class="flex items-center justify-between gap-3 border-b border-white/5 py-2">
 										<div class="min-w-0">
+											<div class="mb-1">
+												<span
+													class={`rounded-full border px-2 py-0.5 text-xs font-medium ${sourceStyle(event.participantId)}`}
+												>
+													{sourceLabel(event.participantId)}
+												</span>
+											</div>
 											<p class="truncate text-sm text-neutral-200">
 												{KIND_LABEL[event.kind]} / {event.category ?? '未分類'}
 											</p>

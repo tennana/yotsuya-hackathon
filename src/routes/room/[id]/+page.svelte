@@ -158,6 +158,22 @@
 		}
 	}
 
+	function sourceLabel(participantId: string) {
+		if (participantId.startsWith('demo-')) return 'デモ';
+		if (participantId.startsWith('facilitator-')) return 'ファシリ';
+		return '参加者';
+	}
+
+	function sourceStyle(participantId: string) {
+		if (participantId.startsWith('demo-')) {
+			return 'bg-violet-300/20 text-violet-200 border-violet-200/40';
+		}
+		if (participantId.startsWith('facilitator-')) {
+			return 'bg-sky-300/20 text-sky-200 border-sky-200/40';
+		}
+		return 'bg-emerald-300/20 text-emerald-200 border-emerald-200/40';
+	}
+
 	onMount(() => {
 		participantId = getParticipantId();
 
@@ -253,9 +269,16 @@
 							<p class="text-sm text-neutral-500">まだ送信済みメッセージはありません。</p>
 						{:else}
 							{#each sentMessages as message, index (`${message.participantId}-${message.t}-${index}`)}
-								<p class="rounded-md bg-white/5 px-3 py-2 text-sm text-neutral-200">
-									{message.text}
-								</p>
+								<div class="rounded-md bg-white/5 px-3 py-2">
+									<div class="mb-1 flex items-center justify-between gap-2">
+										<span
+											class={`rounded-full border px-2 py-0.5 text-xs font-medium ${sourceStyle(message.participantId)}`}
+										>
+											{sourceLabel(message.participantId)}
+										</span>
+									</div>
+									<p class="text-sm text-neutral-200">{message.text}</p>
+								</div>
 							{/each}
 						{/if}
 					</div>
