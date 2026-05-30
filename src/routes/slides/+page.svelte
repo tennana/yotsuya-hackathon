@@ -47,7 +47,9 @@
 	{#snippet slides()}
 		<Slide>
 			<div class="flex h-full flex-col items-center justify-center gap-8 text-center">
-				<p class="text-7xl font-bold tracking-tight">場温計</p>
+				<p class="text-7xl font-bold tracking-tight">
+					<ruby>場温計<rt class="text-3xl font-medium text-white/70">ばおんけい</rt></ruby>
+				</p>
 				<p class="max-w-5xl text-6xl font-bold leading-tight tracking-tight text-balance">
 					その「了解です」、<br />本当に了解ですか？
 				</p>
@@ -133,14 +135,13 @@
 		<Slide>
 			<div class="flex h-full flex-col items-center justify-center gap-10 text-center">
 				<p class="text-6xl font-bold leading-tight tracking-tight text-balance">
-					そしてみんな<br />キーボードに手を置くのをやめた
+					そして会議は沈黙した
 				</p>
 				<div class="space-y-3 text-2xl text-white/65">
 					<p>SvelteKit / Svelte 5 runes</p>
 					<p>Cloudflare Workers</p>
 					<p>Supabase Realtime</p>
 					<p>OpenAI gpt-4o-mini</p>
-					<p>温度モデル（指数減衰）</p>
 				</div>
 			</div>
 		</Slide>
